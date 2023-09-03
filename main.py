@@ -25,15 +25,20 @@ upscale = False
 
 skipped_files = []
 
-# TODO: use the logger instead of print
-logger = logging.getLogger("cropper")
-logger.setLevel(logging.DEBUG)
-log_handler = logging.FileHandler('logs/cropper.log')
-log_handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-log_handler.setFormatter(formatter)
-logger.addHandler(log_handler)
+def initialize_logger():
+    log_path = os.path.join(CURRENT_DIRNAME, 'logs')
+    if not os.path.exists(log_path):
+        os.makedirs(log_path)
 
+    logger = logging.getLogger("cropper")
+    logger.setLevel(logging.DEBUG)
+    log_handler = logging.FileHandler('logs/cropper.log')
+    log_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    log_handler.setFormatter(formatter)
+    logger.addHandler(log_handler)
+
+    return logger
 
 def fill_baseline_image(image_path):
     global baseline_image
@@ -384,7 +389,9 @@ def run_cropping(main_path, person_name):
 
 
 def main():
-    global baseline_image, baseline_image_encoding, resolution, upscale, target_path
+    global baseline_image, baseline_image_encoding, resolution, upscale, target_path, logger
+    # TODO: use the logger instead of print
+    logger = initialize_logger()
 
     parser = argparse.ArgumentParser(description="Script to crop faces at various resolutions")
     # parser.add_argument('--config', default='configs/config.json', help="Path to the config file")
