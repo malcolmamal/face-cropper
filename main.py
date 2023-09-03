@@ -7,13 +7,11 @@ import time
 import logging
 import argparse
 
-'''
-pip install scipy
-pip install dlib 
-pip install face_recognition
-'''
+# globals
+
 APP_VERSION = '0.0.1'
 CURRENT_DIRNAME = os.path.dirname(__file__)
+
 tmp_file_path = f'{CURRENT_DIRNAME}/tmp.png'
 target_path = ''
 
