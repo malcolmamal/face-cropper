@@ -436,6 +436,10 @@ def main():
 
     upscale = False if resolution == 512 else True
 
+    if not dlib.DLIB_USE_CUDA:
+        print('!!! WARNING !!! - your DLIB is not using CUDA, script may take much longer to run since it will be using CPU instead of GPU!')
+        print('Please check README.md for info on how to compile DLIB for CUDA')
+
     print('Starting cropping!')
     global_start_time = time.time()
 
