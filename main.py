@@ -475,12 +475,12 @@ if __name__ == "__main__":
 
 
 # comparing faces:
-def compare_faces(first_image, second_image):
-    known_image = face_recognition.load_image_file(first_image)
-    unknown_image = face_recognition.load_image_file(second_image)
+def compare_faces(know_face_image, unknown_face_image):
+    known_image = face_recognition.load_image_file(know_face_image)
+    unknown_image = face_recognition.load_image_file(unknown_face_image)
 
-    biden_encoding = face_recognition.face_encodings(known_image)[0]
-    unknown_encoding = face_recognition.face_encodings(unknown_image)[0]
+    known_face_encoding = face_recognition.face_encodings(known_image)[0]
+    unknown_face_encoding = face_recognition.face_encodings(unknown_image)[0]
 
-    results = face_recognition.compare_faces([biden_encoding], unknown_encoding)
+    results = face_recognition.compare_faces([known_face_encoding], unknown_face_encoding)
     print(results)
