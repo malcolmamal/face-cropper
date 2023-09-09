@@ -10,9 +10,9 @@ import argparse
 # globals
 
 APP_VERSION = '0.0.1'
-CURRENT_DIRNAME = os.path.dirname(__file__)
+CURRENT_DIR_NAME = os.path.dirname(__file__)
 
-tmp_file_path = f'{CURRENT_DIRNAME}/tmp.png'
+tmp_file_path = f'{CURRENT_DIR_NAME}/tmp.png'
 target_path = ''
 
 baseline_image = None
@@ -23,8 +23,9 @@ upscale = False
 
 skipped_files = []
 
+
 def initialize_logger():
-    log_path = os.path.join(CURRENT_DIRNAME, 'logs')
+    log_path = os.path.join(CURRENT_DIR_NAME, 'logs')
     if not os.path.exists(log_path):
         os.makedirs(log_path)
 
@@ -37,6 +38,7 @@ def initialize_logger():
     logger.addHandler(log_handler)
 
     return logger
+
 
 def fill_baseline_image(image_path):
     global baseline_image
@@ -71,7 +73,8 @@ def pick_best_face_locations(image, face_locations):
             continue
 
         try:
-            if baseline_image_encoding and face_recognition.compare_faces([baseline_image_encoding], candidate_encodings[0])[0]:
+            if baseline_image_encoding \
+                    and face_recognition.compare_faces([baseline_image_encoding], candidate_encodings[0])[0]:
                 print('Found matching face in locations: ', locations)
 
                 # TODO: we will likely need to iterate over all and collect face_recognition.face_distance()
@@ -387,9 +390,9 @@ def run_cropping(main_path, person_name):
 
 
 def main():
-    global baseline_image, baseline_image_encoding, resolution, upscale, target_path, logger
+    global baseline_image, baseline_image_encoding, resolution, upscale, target_path
     # TODO: use the logger instead of print
-    logger = initialize_logger()
+    # logger = initialize_logger()
 
     parser = argparse.ArgumentParser(description="Script to crop faces at various resolutions")
     # parser.add_argument('--config', default='configs/config.json', help="Path to the config file")
@@ -437,7 +440,8 @@ def main():
     upscale = False if resolution == 512 else True
 
     if not dlib.DLIB_USE_CUDA:
-        print('!!! WARNING !!! - your DLIB is not using CUDA, script may take much longer to run since it will be using CPU instead of GPU!')
+        print('!!! WARNING !!! - your DLIB is not using CUDA, '
+              'script may take much longer to run since it will be using CPU instead of GPU!')
         print('Please check README.md for info on how to compile DLIB for CUDA')
 
     print('Starting cropping!')
