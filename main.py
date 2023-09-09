@@ -6,6 +6,7 @@ import os
 import time
 import logging
 import argparse
+import sys
 
 # globals
 
@@ -97,7 +98,6 @@ def crop_image(person, full_path):
     global baseline_image, skipped_files, upscale, resolution
 
     filename = Path(full_path).name
-    #    Supports filenames with . in the names.
     filename_without_extension = '.'.join(filename.split('.')[:-1])
 
     image = None
@@ -389,59 +389,85 @@ def main():
     global baseline_image, baseline_image_encoding, resolution, upscale, target_path
     # TODO: use the logger instead of print
     # logger = initialize_logger()
-
-    parser = argparse.ArgumentParser(description="Script to crop faces at various resolutions")
-    # parser.add_argument('--config', default='configs/config.json', help="Path to the config file")
-    parser.add_argument('--resolution', '-r', default='512',
-                        help="Cropping resolution, suggested values: 512, 768, 1024")
-    parser.add_argument('--source-path', '-sp', default=r"C:\!PhotosForAI\autocrop",
-                        help="Source folder with people subfolders")
-    parser.add_argument('--target-path', '-tp', default=r"C:\!PhotosForAI\output", help="Target folder for the outputs")
-    parser.add_argument('--debug', '-d', action='store_true', help="Show additional data in console")
-    parser.add_argument('--check-dlib', '-cd', action='store_true', help="Check if DLIB is using CUDA")
-    parser.add_argument('--version', '-v', action='store_true')
-
-    args = parser.parse_args()
-
-    if args.debug:
-        print(f"\nArguments: {args}")
-
-    if args.version:
-        print(f'Version: {APP_VERSION}')
-        exit(0)
-
-    if args.check_dlib:
-        print('dlib using cuda:', dlib.DLIB_USE_CUDA)
-        exit(0)
-
-    if args.source_path:
-        if not os.path.exists(args.source_path):
-            raise Exception("Source path does not exist!", args.source_path)
-        source_path = args.source_path
-    else:
-        raise Exception("Missing source path!")
-
-    if args.target_path:
-        if not os.path.exists(args.target_path):
-            raise Exception("Target path does not exist!", args.target_path)
-        target_path = args.target_path
-    else:
-        raise Exception("Missing target path!")
-
-    if args.resolution and args.resolution.isnumeric():
-        resolution = int(args.resolution)
-    else:
-        resolution = 512
-
-    upscale = False if resolution == 512 else True
-
+    
     if not dlib.DLIB_USE_CUDA:
         print('!!! WARNING !!! - your DLIB is not using CUDA, '
-              'script may take much longer to run since it will be using CPU instead of GPU!')
+                'script may take much longer to run since it will be using CPU instead of GPU!')
         print('Please check README.md for info on how to compile DLIB for CUDA')
 
+
+    # Check if any command-line arguments were provided
+    if len(sys.argv) > 1:
+
+        parser = argparse.ArgumentParser(description="Script to crop faces at various resolutions")
+        # parser.add_argument('--config', default='configs/config.json', help="Path to the config file")
+        parser.add_argument('--resolution', '-r', default='512',
+                            help="Cropping resolution, suggested values: 512, 768, 1024")
+        parser.add_argument('--source-path', '-sp', default=r"C:\!PhotosForAI\autocrop",
+                            help="Source folder with people subfolders")
+        parser.add_argument('--target-path', '-tp', default=r"C:\!PhotosForAI\output", help="Target folder for the outputs")
+        parser.add_argument('--debug', '-d', action='store_true', help="Show additional data in console")
+        parser.add_argument('--check-dlib', '-cd', action='store_true', help="Check if DLIB is using CUDA")
+        parser.add_argument('--version', '-v', action='store_true')
+
+        args = parser.parse_args()
+
+        if args.debug:
+            print(f"\nArguments: {args}")
+
+        if args.version:
+            print(f'Version: {APP_VERSION}')
+            exit(0)
+
+        if args.check_dlib:
+            print('dlib using cuda:', dlib.DLIB_USE_CUDA)
+            exit(0)
+
+        if args.source_path:
+            if not os.path.exists(args.source_path):
+                raise Exception("Source path does not exist!", args.source_path)
+            source_path = args.source_path
+        else:
+            raise Exception("Missing source path!")
+
+        if args.target_path:
+            if not os.path.exists(args.target_path):
+                raise Exception("Target path does not exist!", args.target_path)
+            target_path = args.target_path
+        else:
+            raise Exception("Missing target path!")
+
+        if args.resolution and args.resolution.isnumeric():
+            resolution = int(args.resolution)
+        else:
+            resolution = 512
+
+        upscale = False if resolution == 512 else True
+
+    #Use Input/Output folder 
+    else:
+        # Text-based interface for resolution
+        resolution = int(input("Enter the cropping resolution (suggested values: 512, 768, 1024): "))
+
+        # Set source and target paths relative to the script location
+        source_path = os.path.join(CURRENT_DIR_NAME, "Input")
+        target_path = os.path.join(CURRENT_DIR_NAME, "Output")
+
+        # Automatically set upscale based on resolution
+        upscale = False if resolution == 512 else True
+
+        # Check if paths exist or create them
+        if not os.path.exists(source_path):
+            print(f"Source path does not exist! Creating it at {source_path}")
+            os.makedirs(source_path)
+        if not os.path.exists(target_path):
+            print(f"Target path does not exist! Creating it at {target_path}")
+            os.makedirs(target_path)
+
+            
     print('Starting cropping!')
     global_start_time = time.time()
+
 
     # Handle images in the root directory of the source path
     for item in os.listdir(source_path):
@@ -454,6 +480,7 @@ def main():
             # Run cropping for the image
             print('Running for', item)
             crop_image('', full_item_path)
+
 
     for item in os.listdir(source_path):
         if os.path.isdir(os.path.join(source_path, item)):
