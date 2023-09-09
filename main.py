@@ -443,6 +443,18 @@ def main():
     print('Starting cropping!')
     global_start_time = time.time()
 
+    # Handle images in the root directory of the source path
+    for item in os.listdir(source_path):
+        full_item_path = os.path.join(source_path, item)
+        if os.path.isfile(full_item_path):
+            # Reset baseline image
+            baseline_image = None
+            baseline_image_encoding = None
+
+            # Run cropping for the image
+            print('Running for', item)
+            crop_image('', full_item_path)
+
     for item in os.listdir(source_path):
         if os.path.isdir(os.path.join(source_path, item)):
             # reset baseline image
