@@ -97,7 +97,8 @@ def crop_image(person, full_path):
     global baseline_image, skipped_files, upscale, resolution
 
     filename = Path(full_path).name
-    filename_without_extension = filename.split('.')[0]
+    #    Supports filenames with . in the names.
+    filename_without_extension = '.'.join(filename.split('.')[:-1])
 
     image = None
     try:
