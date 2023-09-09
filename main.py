@@ -87,7 +87,7 @@ def pick_best_face_locations(image, face_locations):
             return []
 
     print('Found no matching faces!')
-    # TODO: consider returning on of the candidates (biggest? first from the left? first from the array?)
+    # TODO: consider returning one of the candidates (biggest? first from the left? first from the array?)
     #       investigate more why there are so many "not found" (how many found in multiple vs not found)
     #       as first step - just log the filenames for manual recheck to see what is going on
     return []
@@ -153,8 +153,6 @@ def crop_image(person, full_path):
 
     found_faces = len(face_locations)
     print("I found {} face(s) in this photograph {}.".format(len(face_locations), filename))
-    # print('locations', face_locations)
-    # face_locations = [(274, 1134, 613, 794)]
 
     if not found_faces:
         print('Found NO faces!')
@@ -262,7 +260,7 @@ def crop_image(person, full_path):
             name_suffix = 'default'
             print('was already expanded, not expanding further')
         # we didn't expand the image, so it was big enough, but we need to move further back
-        # since the algorith considers inner face mainly, and we want full headshot
+        # since the algorithm considers inner face mainly, and we want full headshot
         else:
             expand_by = int((right - left) * expand_ratio)
             print('expand_by', expand_by)
@@ -335,8 +333,6 @@ def crop_image(person, full_path):
             else:
                 print('not expanding')
                 pass
-                # 13(68)_half.png - perhaps it should be expanded by it could not be expanded THAT much
-                # (because of horizontal)
 
         # half_raised is not only expanded but also raised by 1/10
         if prefix == 'half_raised':
@@ -352,7 +348,6 @@ def crop_image(person, full_path):
 
         used_boundaries.append(boundary)
 
-        # cropped_image = image.crop((x, y, x+w, y+h))
         print('resolution to crop', final_left, final_right, final_top, final_bottom)
         cropped_image = image.crop((final_left, final_top, final_right, final_bottom))
 
@@ -478,11 +473,14 @@ if __name__ == "__main__":
 # 2. non square resolutions (i.e. 512x768)
 # 3. make sure the tmp.png file works correctly
 
-# known_image = face_recognition.load_image_file("biden.jpg")
-# unknown_image = face_recognition.load_image_file("someone.jpg")
-#
-# biden_encoding = face_recognition.face_encodings(known_image)[0]
-# unknown_encoding = face_recognition.face_encodings(unknown_image)[0]
-#
-# results = face_recognition.compare_faces([biden_encoding], unknown_encoding)
-# print(results)
+
+# comparing faces:
+def compare_faces(first_image, second_image):
+    known_image = face_recognition.load_image_file(first_image)
+    unknown_image = face_recognition.load_image_file(second_image)
+
+    biden_encoding = face_recognition.face_encodings(known_image)[0]
+    unknown_encoding = face_recognition.face_encodings(unknown_image)[0]
+
+    results = face_recognition.compare_faces([biden_encoding], unknown_encoding)
+    print(results)
