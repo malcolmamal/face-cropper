@@ -7,6 +7,7 @@ import time
 import logging
 import argparse
 
+# TODO: consired removing globals if easy
 # globals
 
 APP_VERSION = '0.0.1'
@@ -93,22 +94,27 @@ def pick_best_face_locations(image, face_locations):
     return []
 
 
+def open_image(image_path):
+    image = None
+    try:
+        image = Image.open(image_path)
+    except UnidentifiedImageError:
+        print(f'Unsupported format found in {image_path}')
+        return
+    except OSError as e:
+        if 'Truncated File Read' in str(e):
+            print(f'Invalid data in {image_path}')
+            return
+
+    return image
+
 def crop_image(person, full_path):
     global baseline_image, skipped_files, upscale, resolution
 
     filename = Path(full_path).name
     filename_without_extension = filename.split('.')[0]
 
-    image = None
-    try:
-        image = Image.open(full_path)
-    except UnidentifiedImageError:
-        print(f'Unsupported format found in {full_path}')
-        return
-    except OSError as e:
-        if 'Truncated File Read' in str(e):
-            print(f'Invalid data in {full_path}')
-            return
+    image = open_image(full_path)
 
     original_width, original_height = image.size
     if original_width < resolution or original_height < resolution:
@@ -375,6 +381,7 @@ def run_cropping(main_path, person_name):
     for root, dirs, files in os.walk(input_path):
         quantity = len(files)
         i = 0
+        # TODO use enumerate -> https://docs.python.org/3/library/functions.html#enumerate
         for name in files:
             i += 1
             start_time = time.time()
@@ -382,6 +389,33 @@ def run_cropping(main_path, person_name):
             print("--- {} seconds when processing {} ---".format(time.time() - start_time, name))
             print('done {}/{}'.format(i, quantity))
             print('-' * 20)
+
+
+def resize_images(input_path, target_path):
+    for root, dirs, files in os.walk(input_path):
+        # TODO use enumerate -> https://docs.python.org/3/library/functions.html#enumerate
+        for file_name in files:
+            resize_image(os.path.join(root, file_name), target_path)
+    print('Resizing finished')
+
+
+def resize_image(image_path, target_path):
+    global resolution
+
+    filename = Path(image_path).name
+    filename_without_extension = filename.split('.')[0]
+
+    image = open_image(image_path)
+
+    resized_image = image.resize((resolution, resolution))
+
+    directory = os.path.join(target_path, 'resized')
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    resized_path = r'{}\{}_{}.png'.format(directory, filename_without_extension, 'resized')
+    resized_image.save(resized_path, 'PNG')
+    print('resized image: {}'.format(resized_path))
 
 
 def main():
@@ -398,6 +432,7 @@ def main():
     parser.add_argument('--target-path', '-tp', default=r"C:\!PhotosForAI\output", help="Target folder for the outputs")
     parser.add_argument('--debug', '-d', action='store_true', help="Show additional data in console")
     parser.add_argument('--check-dlib', '-cd', action='store_true', help="Check if DLIB is using CUDA")
+    parser.add_argument('--resize-only', '-ro', action='store_true', help="Just resize images to the provided --resolution")
     parser.add_argument('--version', '-v', action='store_true')
 
     args = parser.parse_args()
@@ -407,18 +442,19 @@ def main():
 
     if args.version:
         print(f'Version: {APP_VERSION}')
-        exit(0)
+        return
 
     if args.check_dlib:
         print('dlib using cuda:', dlib.DLIB_USE_CUDA)
-        exit(0)
+        return
 
-    if args.source_path:
-        if not os.path.exists(args.source_path):
-            raise Exception("Source path does not exist!", args.source_path)
-        source_path = args.source_path
-    else:
+    if not args.source_path:
         raise Exception("Missing source path!")
+
+    if not os.path.exists(args.source_path):
+        raise Exception("Source path does not exist!", args.source_path)
+
+    source_path = args.source_path
 
     if args.target_path:
         if not os.path.exists(args.target_path):
@@ -433,6 +469,10 @@ def main():
         resolution = 512
 
     upscale = False if resolution == 512 else True
+
+    if args.resize_only:
+        resize_images(source_path, target_path)
+        return
 
     if not dlib.DLIB_USE_CUDA:
         print('!!! WARNING !!! - your DLIB is not using CUDA, '

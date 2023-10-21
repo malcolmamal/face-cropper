@@ -2,5 +2,6 @@ venv
 logs
 .idea
 .history
+.vscode
 run-user.bat
 tmp.png
