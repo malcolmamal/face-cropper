@@ -10,11 +10,11 @@ import argparse
 # TODO: consired removing globals if easy
 # globals
 
-APP_VERSION = '0.0.1'
+APP_VERSION = "0.0.1"
 CURRENT_DIR_NAME = os.path.dirname(__file__)
 
-tmp_file_path = f'{CURRENT_DIR_NAME}/tmp.png'
-target_path = ''
+tmp_file_path = f"{CURRENT_DIR_NAME}/tmp.png"
+target_path = ""
 
 baseline_image = None
 baseline_image_encoding = None
@@ -26,15 +26,17 @@ skipped_files = []
 
 
 def initialize_logger():
-    log_path = os.path.join(CURRENT_DIR_NAME, 'logs')
+    log_path = os.path.join(CURRENT_DIR_NAME, "logs")
     if not os.path.exists(log_path):
         os.makedirs(log_path)
 
     logger = logging.getLogger("cropper")
     logger.setLevel(logging.DEBUG)
-    log_handler = logging.FileHandler('logs/cropper.log')
+    log_handler = logging.FileHandler("logs/cropper.log")
     log_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
 
@@ -46,9 +48,11 @@ def fill_baseline_image(image_path):
     global baseline_image_encoding
 
     loaded_image = face_recognition.load_image_file(image_path)
-    encodings = (face_recognition.face_encodings(loaded_image))
+    encodings = face_recognition.face_encodings(loaded_image)
     if len(encodings) == 0:
-        print("WARNING: Somehow there were no face encodings even though there was one face location found")
+        print(
+            "WARNING: Somehow there were no face encodings even though there was one face location found"
+        )
         return
 
     baseline_image = loaded_image
@@ -56,7 +60,7 @@ def fill_baseline_image(image_path):
 
 
 def pick_best_face_locations(image, face_locations):
-    print('Going to pick best face locations out of', len(face_locations))
+    print("Going to pick best face locations out of", len(face_locations))
     global baseline_image_encoding
     global tmp_file_path
 
@@ -64,19 +68,23 @@ def pick_best_face_locations(image, face_locations):
         (top, right, bottom, left) = locations
 
         # offsets needed otherwise the face might not be found again
-        temp_image = image.crop((left-50, top-50, right+50, bottom+50))
-        temp_image.save(tmp_file_path, 'PNG')
+        temp_image = image.crop((left - 50, top - 50, right + 50, bottom + 50))
+        temp_image.save(tmp_file_path, "PNG")
         candidate_image = face_recognition.load_image_file(tmp_file_path)
 
         candidate_encodings = face_recognition.face_encodings(candidate_image)
         if not candidate_encodings:
-            print('Warning! Somehow found no candidate encodings!')
+            print("Warning! Somehow found no candidate encodings!")
             continue
 
         try:
-            if baseline_image_encoding \
-                    and face_recognition.compare_faces([baseline_image_encoding], candidate_encodings[0])[0]:
-                print('Found matching face in locations: ', locations)
+            if (
+                baseline_image_encoding
+                and face_recognition.compare_faces(
+                    [baseline_image_encoding], candidate_encodings[0]
+                )[0]
+            ):
+                print("Found matching face in locations: ", locations)
 
                 # TODO: we will likely need to iterate over all and collect face_recognition.face_distance()
                 #       and take the one with lowest distance value
@@ -84,10 +92,10 @@ def pick_best_face_locations(image, face_locations):
                 return [locations]
         except ValueError:
             # TODO: something weird is going on, need to investigate (biancablanchard test data)
-            print('TODO: WTF is going on here?')
+            print("TODO: WTF is going on here?")
             return []
 
-    print('Found no matching faces!')
+    print("Found no matching faces!")
     # TODO: consider returning one of the candidates (biggest? first from the left? first from the array?)
     #       investigate more why there are so many "not found" (how many found in multiple vs not found)
     #       as first step - just log the filenames for manual recheck to see what is going on
@@ -99,32 +107,33 @@ def open_image(image_path):
     try:
         image = Image.open(image_path)
     except UnidentifiedImageError:
-        print(f'Unsupported format found in {image_path}')
+        print(f"Unsupported format found in {image_path}")
         return
     except OSError as e:
-        if 'Truncated File Read' in str(e):
-            print(f'Invalid data in {image_path}')
+        if "Truncated File Read" in str(e):
+            print(f"Invalid data in {image_path}")
             return
 
     return image
+
 
 def crop_image(person, full_path):
     global baseline_image, skipped_files, upscale, resolution
 
     filename = Path(full_path).name
-    filename_without_extension = filename.split('.')[0]
+    filename_without_extension = filename.split(".")[0]
 
     image = open_image(full_path)
 
     original_width, original_height = image.size
     if original_width < resolution or original_height < resolution:
         if not upscale:
-            print(f'file too small, but no upscale - skipping { full_path }')
+            print(f"file too small, but no upscale - skipping { full_path }")
             return
 
         # TODO: also decide when an image is too small for up-scaling to not bother with those
 
-        print('upscale needed')
+        print("upscale needed")
 
         # will upscale original image
         new_width = resolution if original_width < resolution else original_width
@@ -136,12 +145,14 @@ def crop_image(person, full_path):
 
         upscaled_image = image.resize((int(new_width), int(new_height)))
 
-        directory = os.path.join(target_path, 'resized', person)
+        directory = os.path.join(target_path, "resized", person)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        upscaled_path = r'{}\{}_{}.png'.format(directory, filename_without_extension, 'resized')
-        upscaled_image.save(upscaled_path, 'PNG')
+        upscaled_path = r"{}\{}_{}.png".format(
+            directory, filename_without_extension, "resized"
+        )
+        upscaled_image.save(upscaled_path, "PNG")
         image = upscaled_image
         original_width, original_height = image.size
         full_path = upscaled_path
@@ -149,40 +160,46 @@ def crop_image(person, full_path):
     fr_image = face_recognition.load_image_file(full_path)
     # TODO: check VRAM and try to compute what would be the max resolution (width * height) before running out of VRAM
     try:
-        face_locations = face_recognition.face_locations(fr_image, number_of_times_to_upsample=0, model="cnn")
+        face_locations = face_recognition.face_locations(
+            fr_image, number_of_times_to_upsample=0, model="cnn"
+        )
     except RuntimeError as e:
-        print('Image was probably too big, cannot handle it so, skipping now')
+        print("Image was probably too big, cannot handle it so, skipping now")
         # TODO: workaround - resize (downsize) and try again instead of returning
-        if 'out of memory' in str(e):
-            print('!!! It was indeed out of memory error', str(e))
+        if "out of memory" in str(e):
+            print("!!! It was indeed out of memory error", str(e))
         return
 
     found_faces = len(face_locations)
-    print("I found {} face(s) in this photograph {}.".format(len(face_locations), filename))
+    print(
+        "I found {} face(s) in this photograph {}.".format(
+            len(face_locations), filename
+        )
+    )
 
     if not found_faces:
-        print('Found NO faces!')
+        print("Found NO faces!")
         return
     elif found_faces == 1:
-        print('Found one face!')
+        print("Found one face!")
         if baseline_image is None:
-            print('There was no baseline image, setting to this image')
+            print("There was no baseline image, setting to this image")
             fill_baseline_image(full_path)
     else:
-        print('Found multiple faces: ', found_faces)
+        print("Found multiple faces: ", found_faces)
         face_locations = pick_best_face_locations(image, face_locations)
         if not len(face_locations):
             skipped_files.append(full_path)
-            print('Found no locations after going through multiple faces')
+            print("Found no locations after going through multiple faces")
             return
 
     (top, right, bottom, left) = face_locations[0]
 
-    print('size is {}x{}'.format(original_width, original_height))
+    print("size is {}x{}".format(original_width, original_height))
 
     was_expanded = False
 
-    print('original', left, right, top, bottom)
+    print("original", left, right, top, bottom)
 
     # in case the face is small, let's expand the image so the size will be at least 512 as we want to avoid up-scaling
     if right - left < resolution:
@@ -193,12 +210,12 @@ def crop_image(person, full_path):
         if right - left == resolution - 1:
             right += 1
 
-        print('remaining horizontal', remaining, remaining / resolution)
+        print("remaining horizontal", remaining, remaining / resolution)
         if remaining / resolution > 0.4:
             # we do not consider small expansion as expanded
             was_expanded = True
     else:
-        print('horizontal was fine')
+        print("horizontal was fine")
 
     if bottom - top < resolution:
         remaining = resolution - (bottom - top)
@@ -208,16 +225,16 @@ def crop_image(person, full_path):
         if bottom - top == resolution - 1:
             bottom += 1
 
-        print('remaining vertical', remaining, remaining / resolution)
+        print("remaining vertical", remaining, remaining / resolution)
         if remaining / resolution > 0.4:
             # we do not consider small expansion as expanded
             was_expanded = True
     else:
-        print('vertical was fine')
+        print("vertical was fine")
 
-    print('was expanded', was_expanded)
+    print("was expanded", was_expanded)
 
-    print('after expanded', left, right, top, bottom)
+    print("after expanded", left, right, top, bottom)
 
     # if there is discrepancy it will be due to rounding issues, let's fix that
     if right - left > bottom - top:
@@ -225,7 +242,7 @@ def crop_image(person, full_path):
     elif right - left < bottom - top:
         right += (bottom - top) - (right - left)
 
-    print('after discrepancy fix', left, right, top, bottom)
+    print("after discrepancy fix", left, right, top, bottom)
 
     # if the positions are outside of image, move the image
     if top < 1:
@@ -248,7 +265,7 @@ def crop_image(person, full_path):
     print("res is {}x{}".format(right - left, bottom - top))
 
     used_boundaries = []
-    ratios = {'fifth': 0.2, 'third': 0.33, 'half': 0.5, 'half_raised': 0.5}
+    ratios = {"fifth": 0.2, "third": 0.33, "half": 0.5, "half_raised": 0.5}
 
     for prefix, expand_ratio in ratios.items():
         final_right = right
@@ -261,25 +278,31 @@ def crop_image(person, full_path):
         # when we know it was expanded, we already know the head was too small, so no need to expand further
         if was_expanded:
             # we only do it for the first dictionary iteration as the effect will be the same for all
-            if prefix != 'fifth':
+            if prefix != "fifth":
                 continue
-            name_suffix = 'default'
-            print('was already expanded, not expanding further')
+            name_suffix = "default"
+            print("was already expanded, not expanding further")
         # we didn't expand the image, so it was big enough, but we need to move further back
         # since the algorithm considers inner face mainly, and we want full headshot
         else:
             expand_by = int((right - left) * expand_ratio)
-            print('expand_by', expand_by)
-            if left > expand_by and right + expand_by < original_width \
-                    and top > expand_by and bottom + expand_by < original_height:
+            print("expand_by", expand_by)
+            if (
+                left > expand_by
+                and right + expand_by < original_width
+                and top > expand_by
+                and bottom + expand_by < original_height
+            ):
                 # we can expand in all directions freely
                 final_left -= expand_by
                 final_right += expand_by
                 final_top -= expand_by
                 final_bottom += expand_by
-                print('expanding evenly in all directions!', expand_ratio)
-            elif right - left + expand_by * 2 < original_width \
-                    and bottom - top + expand_by * 2 < original_height:
+                print("expanding evenly in all directions!", expand_ratio)
+            elif (
+                right - left + expand_by * 2 < original_width
+                and bottom - top + expand_by * 2 < original_height
+            ):
                 # we know we can expand but not evenly in all directions, so we need to check for it
                 if left > expand_by and original_width - right > expand_by:
                     final_left -= expand_by
@@ -305,9 +328,11 @@ def crop_image(person, full_path):
                     final_top = 1
                     final_bottom += expand_by * 2 - allowed_top
 
-                print('expanding smart in some directions!', expand_ratio)
-            elif right - left + expand_by * 2 > original_width \
-                    and original_width <= original_height:
+                print("expanding smart in some directions!", expand_ratio)
+            elif (
+                right - left + expand_by * 2 > original_width
+                and original_width <= original_height
+            ):
                 # we know we can expand but not fully, so we need to figure out max expansion length
                 expand_by = (original_width - right + left) // 2
 
@@ -335,26 +360,35 @@ def crop_image(person, full_path):
                     final_top = 1
                     final_bottom += expand_by * 2 - allowed_top
 
-                print('expanding smart in some directions with max horizontal!', expand_ratio)
+                print(
+                    "expanding smart in some directions with max horizontal!",
+                    expand_ratio,
+                )
             else:
-                print('not expanding')
+                print("not expanding")
                 pass
 
         # half_raised is not only expanded but also raised by 1/10
-        if prefix == 'half_raised':
+        if prefix == "half_raised":
             offset = (final_bottom - final_top) // 10
             if final_top > offset:
                 final_top -= offset
                 final_bottom -= offset
 
-        boundary = '{}_{}_{}_{}'.format(final_left, final_right, final_top, final_bottom)
+        boundary = "{}_{}_{}_{}".format(
+            final_left, final_right, final_top, final_bottom
+        )
         if boundary in used_boundaries:
-            print('The following boundary {} from prefix {} was already used. Skipping'.format(boundary, prefix))
+            print(
+                "The following boundary {} from prefix {} was already used. Skipping".format(
+                    boundary, prefix
+                )
+            )
             continue
 
         used_boundaries.append(boundary)
 
-        print('resolution to crop', final_left, final_right, final_top, final_bottom)
+        print("resolution to crop", final_left, final_right, final_top, final_bottom)
         cropped_image = image.crop((final_left, final_top, final_right, final_bottom))
 
         # at this point we should have a square,
@@ -362,22 +396,32 @@ def crop_image(person, full_path):
         if top - left != resolution:
             cropped_image = cropped_image.resize((resolution, resolution))
 
-        directory = os.path.join(target_path, 'cropped', person)
+        directory = os.path.join(target_path, "cropped", person)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
         # save the cropped image
         try:
-            cropped_image.save(r'{}\{}_{}.png'.format(directory, filename_without_extension, name_suffix), 'PNG')
+            cropped_image.save(
+                r"{}\{}_{}.png".format(
+                    directory, filename_without_extension, name_suffix
+                ),
+                "PNG",
+            )
         except OSError as e:
-            if 'cannot write mode' in str(e):
-                cropped_image = cropped_image.convert('RGB')
-                cropped_image.save(r'{}\{}_{}.png'.format(directory, filename_without_extension, name_suffix), 'PNG')
+            if "cannot write mode" in str(e):
+                cropped_image = cropped_image.convert("RGB")
+                cropped_image.save(
+                    r"{}\{}_{}.png".format(
+                        directory, filename_without_extension, name_suffix
+                    ),
+                    "PNG",
+                )
 
 
 def run_cropping(main_path, person_name):
     input_path = os.path.join(main_path, person_name)
-    print('inputPath', input_path, 'personName', person_name)
+    print("inputPath", input_path, "personName", person_name)
     for root, dirs, files in os.walk(input_path):
         quantity = len(files)
         i = 0
@@ -386,9 +430,13 @@ def run_cropping(main_path, person_name):
             i += 1
             start_time = time.time()
             crop_image(person_name, os.path.join(root, name))
-            print("--- {} seconds when processing {} ---".format(time.time() - start_time, name))
-            print('done {}/{}'.format(i, quantity))
-            print('-' * 20)
+            print(
+                "--- {} seconds when processing {} ---".format(
+                    time.time() - start_time, name
+                )
+            )
+            print("done {}/{}".format(i, quantity))
+            print("-" * 20)
 
 
 def resize_images(input_path, target_path):
@@ -396,26 +444,28 @@ def resize_images(input_path, target_path):
         # TODO use enumerate -> https://docs.python.org/3/library/functions.html#enumerate
         for file_name in files:
             resize_image(os.path.join(root, file_name), target_path)
-    print('Resizing finished')
+    print("Resizing finished")
 
 
 def resize_image(image_path, target_path):
     global resolution
 
     filename = Path(image_path).name
-    filename_without_extension = filename.split('.')[0]
+    filename_without_extension = filename.split(".")[0]
 
     image = open_image(image_path)
 
     resized_image = image.resize((resolution, resolution))
 
-    directory = os.path.join(target_path, 'resized')
+    directory = os.path.join(target_path, "resized")
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    resized_path = r'{}\{}_{}.png'.format(directory, filename_without_extension, 'resized')
-    resized_image.save(resized_path, 'PNG')
-    print('resized image: {}'.format(resized_path))
+    resized_path = r"{}\{}_{}.png".format(
+        directory, filename_without_extension, "resized"
+    )
+    resized_image.save(resized_path, "PNG")
+    print("resized image: {}".format(resized_path))
 
 
 def main():
@@ -423,17 +473,44 @@ def main():
     # TODO: use the logger instead of print
     # logger = initialize_logger()
 
-    parser = argparse.ArgumentParser(description="Script to crop faces at various resolutions")
+    parser = argparse.ArgumentParser(
+        description="Script to crop faces at various resolutions"
+    )
     # parser.add_argument('--config', default='configs/config.json', help="Path to the config file")
-    parser.add_argument('--resolution', '-r', default='512',
-                        help="Cropping resolution, suggested values: 512, 768, 1024")
-    parser.add_argument('--source-path', '-sp', default=r"C:\!PhotosForAI\autocrop",
-                        help="Source folder with people subfolders")
-    parser.add_argument('--target-path', '-tp', default=r"C:\!PhotosForAI\output", help="Target folder for the outputs")
-    parser.add_argument('--debug', '-d', action='store_true', help="Show additional data in console")
-    parser.add_argument('--check-dlib', '-cd', action='store_true', help="Check if DLIB is using CUDA")
-    parser.add_argument('--resize-only', '-ro', action='store_true', help="Just resize images to the provided --resolution")
-    parser.add_argument('--version', '-v', action='store_true')
+    parser.add_argument(
+        "--resolution",
+        "-r",
+        default="512",
+        help="Cropping resolution, suggested values: 512, 768, 1024",
+    )
+    parser.add_argument(
+        "--source-path",
+        "-sp",
+        default=r"C:\!PhotosForAI\autocrop",
+        help="Source folder with people subfolders",
+    )
+    parser.add_argument(
+        "--target-path",
+        "-tp",
+        default=r"C:\!PhotosForAI\output",
+        help="Target folder for the outputs",
+    )
+    parser.add_argument(
+        "--full-picture-mode", "-fpm", action="store_true", help="Use full picture mode"
+    )
+    parser.add_argument(
+        "--debug", "-d", action="store_true", help="Show additional data in console"
+    )
+    parser.add_argument(
+        "--check-dlib", "-cd", action="store_true", help="Check if DLIB is using CUDA"
+    )
+    parser.add_argument(
+        "--resize-only",
+        "-ro",
+        action="store_true",
+        help="Just resize images to the provided --resolution",
+    )
+    parser.add_argument("--version", "-v", action="store_true")
 
     args = parser.parse_args()
 
@@ -441,11 +518,11 @@ def main():
         print(f"\nArguments: {args}")
 
     if args.version:
-        print(f'Version: {APP_VERSION}')
+        print(f"Version: {APP_VERSION}")
         return
 
     if args.check_dlib:
-        print('dlib using cuda:', dlib.DLIB_USE_CUDA)
+        print("dlib using cuda:", dlib.DLIB_USE_CUDA)
         return
 
     if not args.source_path:
@@ -475,11 +552,13 @@ def main():
         return
 
     if not dlib.DLIB_USE_CUDA:
-        print('!!! WARNING !!! - your DLIB is not using CUDA, '
-              'script may take much longer to run since it will be using CPU instead of GPU!')
-        print('Please check README.md for info on how to compile DLIB for CUDA')
+        print(
+            "!!! WARNING !!! - your DLIB is not using CUDA, "
+            "script may take much longer to run since it will be using CPU instead of GPU!"
+        )
+        print("Please check README.md for info on how to compile DLIB for CUDA")
 
-    print('Starting cropping!')
+    print("Starting cropping!")
     global_start_time = time.time()
 
     for item in os.listdir(source_path):
@@ -491,15 +570,15 @@ def main():
             if os.path.isfile(tmp_file_path):
                 fill_baseline_image(tmp_file_path)
 
-            print('Running for', item)
+            print("Running for", item)
             run_cropping(source_path, item)
 
     if os.path.isfile(tmp_file_path):
         os.remove(tmp_file_path)
-        print('Removed the tmp image file')
+        print("Removed the tmp image file")
 
-    print('Skipped files', skipped_files)
-    print('Finished cropping!')
+    print("Skipped files", skipped_files)
+    print("Finished cropping!")
     print("--- {} seconds passed for all ---".format(time.time() - global_start_time))
 
 
@@ -522,5 +601,7 @@ def compare_faces(know_face_image, unknown_face_image):
     known_face_encoding = face_recognition.face_encodings(known_image)[0]
     unknown_face_encoding = face_recognition.face_encodings(unknown_image)[0]
 
-    results = face_recognition.compare_faces([known_face_encoding], unknown_face_encoding)
+    results = face_recognition.compare_faces(
+        [known_face_encoding], unknown_face_encoding
+    )
     print(results)
